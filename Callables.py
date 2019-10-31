@@ -1,40 +1,40 @@
 from Population import Poly_Population
 from math import log
+import numpy as np
 
 
-def gp_find_prime_polynomial(fitness_functions, population_size=1000, test_interval=(0, 50), death_rate=0.95):
+def gp_find_prime_polynomial(constructor, fitness_functions, num_populations=1, population_size=1000, test_interval=(0, 50), death_rate=0.95):
     print_hyperparameters(population_size, test_interval, death_rate)
-    population = Poly_Population(fitness_functions, population_size=population_size, test_interval=test_interval)
+
+    populations = np.array([constructor(fitness_functions, population_size=population_size, test_interval=test_interval)])
+    for _ in range(1, num_populations):
+        np.append(populations, [constructor(fitness_functions, population_size=population_size, test_interval=test_interval)])
 
     num_iterations = int(-log(population_size) / log(death_rate))
     i = 1
-    while population.polynomials.size > 1:
+    while populations[0].polynomials.size > 1:
         printProgressBar(i, num_iterations)
-        population.introduce_new_generation(death_rate=death_rate)
+        for p in populations:
+            p.introduce_new_generation(death_rate=death_rate)
+        if populations[0].polynomials.size < num_iterations/2 and populations.size > 1:
+            for k in range(num_populations-1):
+                populations[k].merge_populations(populations[k+1])
+                np.delete(populations, k+1)
         i += 1
     printProgressBar(num_iterations, num_iterations)
 
-
     print("Surviving polynomials: ")
-    for p in population.polynomials:
-        print_gp_find_prime_polynomials(p, test_interval)
-
-
-def print_gp_find_prime_polynomials(polynomial, test_interval):
-    poly_string = "(" + str(polynomial.value[0]) + ")"
-    for i in range(1, polynomial.value.size):
-        if polynomial.value[i] != 0:
-            poly_string = "(" + str(polynomial.value[i]) + ")" + "x^" + str(i) + " + " + poly_string
-    print(poly_string)
-    print("On given interval it produced {0} primes."
-          .format(int(polynomial.num_primes_fitness(test_interval))))
+    for p in populations[0].polynomials:
+        print("It produced {0} primes."
+              .format(int(p.num_primes_fitness_in_interval(test_interval))))
+        print(p.print_gp_polynomial())
 
 
 def print_hyperparameters(population_size, test_interval, death_rate):
     print("Population-size: {0}, Test-interval: {1}, Death-rate: {2}"
           .format(population_size, test_interval, death_rate))
 
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 60, fill = '█', printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
     @params:

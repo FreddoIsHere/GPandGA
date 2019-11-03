@@ -28,10 +28,6 @@ class Chromosome(ABC):
         return fitness
 
     def num_primes_fitness_in_interval(self, interval):
-        """
-        tuple (l, u):param interval: Interval to test on [l, u)
-        int:return: fitness score
-        """
         results = np.unique(self.eval_polynomial(np.array(range(interval[0], interval[1]))))
         return np.sum([0.5 * is_prime(int(x)) for x in results])
 
@@ -75,7 +71,7 @@ class Chromosome(ABC):
 
 class PolyChrom(Chromosome):
 
-    def __init__(self, values=None, coeffs_bound=50, order_upper_bound=7):
+    def __init__(self, values=None, coeffs_bound=50, order_upper_bound=3):
         super().__init__()
         self.coeffs_bound = coeffs_bound
         self.order_upper_bound = order_upper_bound
@@ -86,10 +82,6 @@ class PolyChrom(Chromosome):
             self.value = values
 
     def discrete_crossover(self, polychrom, mutation=0.01):
-        """
-        PolyChrom:param polychrom: Polychrom this Polychrom breeds with
-        PolyChrom:return: Child of this Polychrom and polychrom
-        """
         max_order = max(polychrom.value.size, self.value.size)
         min_order = min(polychrom.value.size, self.value.size)
         a = np.append(self.value, np.zeros(self.order_upper_bound - min_order))
@@ -101,14 +93,22 @@ class PolyChrom(Chromosome):
         return PolyChrom(values=new_values)
 
     def mutate(self, mutation, values):
-        if np.random.choice([False, True], p=[1-mutation, mutation]) and self.value.size > 0:
+        if np.random.choice([False, True], p=[1 - mutation, mutation]) and self.value.size > 0:
             values[random.randint(0, values.size - 1)] = random.randint(-self.coeffs_bound, self.coeffs_bound)
             return np.trim_zeros(values, trim='b')
         else:
             return np.trim_zeros(values, trim='b')
 
-    def smooth_crossover(self):
-        pass
+    def smooth_crossover(self, poly_chrom, mutation=0.01):
+        max_order = max(poly_chrom.value.size, self.value.size)
+        min_order = min(poly_chrom.value.size, self.value.size)
+        a = np.append(self.value, np.zeros(self.order_upper_bound - min_order))
+        b = np.append(poly_chrom.value, np.zeros(self.order_upper_bound - min_order))
+        child_values = np.zeros(max_order)
+        for i in range(max_order):
+            child_values[i] = int((a[i] + b[i]) / 2)
+        new_values = self.mutate(mutation, child_values)
+        return PolyChrom(values=new_values)
 
     def eval_polynomial(self, x):
         """
@@ -137,7 +137,7 @@ class Operator:
 
     def __init__(self):
         functions = [self.add, self.multiply]
-        self.function = np.random.choice(functions, p=[1/2, 1/2])
+        self.function = np.random.choice(functions, p=[1 / 2, 1 / 2])
 
     def add(self, x, y):
         return np.add(x, y)
@@ -159,78 +159,100 @@ class Operator:
 
 class Tree_Chrom(Chromosome):
 
-    def __init__(self, depth_limit=2, first_subtree=None, operator=None, second_subtree=None):
+    def __init__(self, depth=0, depth_limit=2):
         super().__init__()
         self.depth_limit = depth_limit
-        if operator is None:
-            self.first_subtree = Tree_Chrom_Leaf(
-                np.random.choice([random.randint(-50, 50), 0], p=[0.5, 0.5]))
+        if depth == 2 * depth_limit - 1:
+            self.first_subtree = np.random.choice([Tree_Terminal(), Tree_Non_Terminal()], p=[0.5, 0.5])
             self.operator = Operator()
-            self.second_subtree = Tree_Chrom_Leaf(
-                np.random.choice([random.randint(-50, 50), 0], p=[0.5, 0.5]))
+            self.second_subtree = np.random.choice([Tree_Terminal(), Tree_Non_Terminal()], p=[0.5, 0.5])
         else:
-            self.first_subtree = first_subtree
-            self.operator = operator
-            self.second_subtree = second_subtree
+            self.first_subtree = Tree_Chrom(depth + 1)
+            self.operator = Operator()
+            self.second_subtree = Tree_Chrom(depth + 1)
 
-    def discrete_crossover(self, treechrom, mutation=0.1):
-        sub_subtree = np.random.choice([Tree_Chrom(), np.random.choice(copy.deepcopy(treechrom).max_list_subtrees())],
-                                       p=[mutation, 1-mutation])
-        np.random.choice(self.min_list_subtrees()).set_subtree(sub_subtree, np.random.choice([True, False]))
-        return self
+    def discrete_crossover(self, tree_chrom, mutation=0.01):
+        bottom_up_subtrees = np.random.choice(
+            [Tree_Chrom(), np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
+            p=[mutation, 1 - mutation])
+        np.random.choice(self.top_down_list_subtrees()).set_subtree(bottom_up_subtrees, np.random.choice([True, False]))
+        return copy.deepcopy(self)
 
     def eval_polynomial(self, x):
         return self.operator.function(self.first_subtree.eval_polynomial(x), self.second_subtree.eval_polynomial(x))
 
-    def max_list_subtrees(self):
+    def bottom_up_list_subtrees(self):
         if self.max_depth() > self.depth_limit:
-            return np.append(self.first_subtree.max_list_subtrees(), self.second_subtree.max_list_subtrees())
-        return self.min_list_subtrees()
+            return np.append(self.first_subtree.bottom_up_list_subtrees(),
+                             self.second_subtree.bottom_up_list_subtrees())
+        return self.top_down_list_subtrees()
 
-    def max_depth(self, d=0):
-        if d > self.depth_limit:
-            return d
-        return max(self.first_subtree.max_depth(d + 1), self.second_subtree.max_depth(d + 1))
+    def max_depth(self, depth=0):
+        if depth > self.depth_limit:
+            return depth
+        return max(self.first_subtree.max_depth(depth + 1), self.second_subtree.max_depth(depth + 1))
 
-    def min_list_subtrees(self, depth=0):
+    def top_down_list_subtrees(self, depth=0):
         if depth >= self.depth_limit:
             return self
-        return np.append(np.append([self], self.first_subtree.min_list_subtrees(depth + 1)),
-                         self.second_subtree.min_list_subtrees(depth + 1))
+        return np.append(np.append([self], self.first_subtree.top_down_list_subtrees(depth + 1)),
+                         self.second_subtree.top_down_list_subtrees(depth + 1))
 
     def set_subtree(self, subtree, first_subtree):
-        if isinstance(subtree.first_subtree, Tree_Chrom_Leaf) and isinstance(subtree.second_subtree, Tree_Chrom_Leaf):
-            if subtree.first_subtree.value != 0 and subtree.second_subtree.value != 0:
-                subtree = Tree_Chrom_Leaf(subtree.first_subtree.value + subtree.second_subtree.value)
+        subtree = self.collapse_subtree(subtree)
         if first_subtree:
             self.first_subtree = subtree
         else:
             self.second_subtree = subtree
 
+    def collapse_subtree(self, subtree):
+        if isinstance(subtree, Tree_Chrom):
+            if isinstance(subtree.first_subtree, Tree_Terminal) and isinstance(subtree.second_subtree, Tree_Terminal):
+                subtree = Tree_Terminal(subtree.operator.function(subtree.first_subtree.value, subtree.second_subtree.value))
+        return subtree
+
     def print_gp_polynomial(self):
-        return self.operator.print_operator(self.first_subtree.print_gp_polynomial(), self.second_subtree.print_gp_polynomial())
+        return self.operator.print_operator(self.first_subtree.print_gp_polynomial(),
+                                            self.second_subtree.print_gp_polynomial())
 
 
-class Tree_Chrom_Leaf:
+class Tree_Terminal:
 
-    def __init__(self, x):
-        self.value = x
+    def __init__(self, x=None):
+        if x is None:
+            self.value = random.choice([i for i in range(-50, 50) if x != 0])
+        else:
+            self.value = x
 
     def eval_polynomial(self, x):
-        if self.value == 0:
-            return x
         return np.tile(self.value, x.size)
 
     def max_depth(self, d):
         return d
 
-    def max_list_subtrees(self):
-        return []
+    def bottom_up_list_subtrees(self):
+        return self
 
-    def min_list_subtrees(self, depth):
+    def top_down_list_subtrees(self, depth):
         return []
 
     def print_gp_polynomial(self):
-        if self.value == 0:
-            return "x"
         return str(self.value)
+
+
+class Tree_Non_Terminal:
+
+    def eval_polynomial(self, x):
+        return x
+
+    def max_depth(self, d):
+        return d
+
+    def bottom_up_list_subtrees(self):
+        return self
+
+    def top_down_list_subtrees(self, depth):
+        return []
+
+    def print_gp_polynomial(self):
+        return "x"

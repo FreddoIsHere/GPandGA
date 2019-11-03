@@ -3,6 +3,7 @@ from enum import IntEnum
 from abc import ABC, abstractmethod
 import numpy as np
 from gmpy import is_prime
+import copy
 
 
 class Fitness(IntEnum):
@@ -31,7 +32,7 @@ class Chromosome(ABC):
         tuple (l, u):param interval: Interval to test on [l, u)
         int:return: fitness score
         """
-        results = self.eval_polynomial(np.array(range(interval[0], interval[1]))))
+        results = np.unique(self.eval_polynomial(np.array(range(interval[0], interval[1]))))
         return np.sum([0.5 * is_prime(int(x)) for x in results])
 
     def num_consecutive_primes_fitness_in_interval(self, interval):
@@ -52,11 +53,11 @@ class Chromosome(ABC):
     def num_consecutive_primes_fitness(self, interval):
         i = interval[0]
         last_x = 0
-        x = self.eval_polynomial(i)[0]
+        x = self.eval_polynomial(np.array([i]))[0]
         while is_prime(int(x)) == 2 and last_x != x:
             i += 1
             last_x = x
-            x = self.eval_polynomial(i)[0]
+            x = self.eval_polynomial(np.array([i]))[0]
         return i
 
     @abstractmethod
@@ -84,7 +85,7 @@ class PolyChrom(Chromosome):
         else:
             self.value = values
 
-    def discrete_crossover(self, polychrom, mutation=True):
+    def discrete_crossover(self, polychrom, mutation=0.01):
         """
         PolyChrom:param polychrom: Polychrom this Polychrom breeds with
         PolyChrom:return: Child of this Polychrom and polychrom
@@ -100,7 +101,7 @@ class PolyChrom(Chromosome):
         return PolyChrom(values=new_values)
 
     def mutate(self, mutation, values):
-        if mutation and np.random.choice([False, True], p=[0.99, 0.01]) and self.value.size > 0:
+        if np.random.choice([False, True], p=[1-mutation, mutation]) and self.value.size > 0:
             values[random.randint(0, values.size - 1)] = random.randint(-self.coeffs_bound, self.coeffs_bound)
             return np.trim_zeros(values, trim='b')
         else:
@@ -132,45 +133,54 @@ class PolyChrom(Chromosome):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-def add(x, y):
-    if isinstance(x, str) or isinstance(y, str):
-        return str(x) + " + " + str(y)
-    return x + y
+class Operator:
 
+    def __init__(self):
+        functions = [self.add, self.multiply]
+        self.function = np.random.choice(functions, p=[1/2, 1/2])
 
-def multiply(x, y):
-    if isinstance(x, str) or isinstance(y, str):
-        return str(x) + " * " + str(y)
-    return np.multiply(x, y)
+    def add(self, x, y):
+        return np.add(x, y)
 
+    def multiply(self, x, y):
+        return np.multiply(x, y)
 
-functions = [add, multiply]
+    def mod(self, x, y):
+        return np.mod(x, y)
+
+    def print_operator(self, x, y):
+        switch = {
+            "add": "({0} + {1})".format(x, y),
+            "multiply": "{0} * {1}".format(x, y),
+            "mod": "({0} % {1})".format(x, y)
+        }
+        return switch.get(self.function.__name__, " Invalid operator ")
 
 
 class Tree_Chrom(Chromosome):
 
-    def __init__(self, depth_limit=3, first_subtree=None, operator=None, second_subtree=None):
+    def __init__(self, depth_limit=2, first_subtree=None, operator=None, second_subtree=None):
         super().__init__()
-        self.depth_limit=depth_limit
+        self.depth_limit = depth_limit
         if operator is None:
             self.first_subtree = Tree_Chrom_Leaf(
-                np.random.choice([random.randint(-50, 50), 0], p=[0.7, 0.3]))
-            self.operator = np.random.choice(functions, p=[0.7, 0.3])
+                np.random.choice([random.randint(-50, 50), 0], p=[0.5, 0.5]))
+            self.operator = Operator()
             self.second_subtree = Tree_Chrom_Leaf(
-                np.random.choice([random.randint(-50, 50), 0], p=[0.7, 0.3]))
+                np.random.choice([random.randint(-50, 50), 0], p=[0.5, 0.5]))
         else:
             self.first_subtree = first_subtree
             self.operator = operator
             self.second_subtree = second_subtree
 
-    def discrete_crossover(self, treechrom, mutation=True):
-        sub_subtree = np.random.choice([Tree_Chrom(), np.random.choice(treechrom.max_list_subtrees())],
-                                   p=[mutation * 0.01, 0.99 + (not mutation) * 0.01])
+    def discrete_crossover(self, treechrom, mutation=0.1):
+        sub_subtree = np.random.choice([Tree_Chrom(), np.random.choice(copy.deepcopy(treechrom).max_list_subtrees())],
+                                       p=[mutation, 1-mutation])
         np.random.choice(self.min_list_subtrees()).set_subtree(sub_subtree, np.random.choice([True, False]))
         return self
 
     def eval_polynomial(self, x):
-        return self.operator(self.first_subtree.eval_polynomial(x), self.second_subtree.eval_polynomial(x))
+        return self.operator.function(self.first_subtree.eval_polynomial(x), self.second_subtree.eval_polynomial(x))
 
     def max_list_subtrees(self):
         if self.max_depth() > self.depth_limit:
@@ -178,22 +188,27 @@ class Tree_Chrom(Chromosome):
         return self.min_list_subtrees()
 
     def max_depth(self, d=0):
+        if d > self.depth_limit:
+            return d
         return max(self.first_subtree.max_depth(d + 1), self.second_subtree.max_depth(d + 1))
 
     def min_list_subtrees(self, depth=0):
         if depth >= self.depth_limit:
             return self
-        return np.append(np.append([self], self.first_subtree.min_list_subtrees(depth+1)),
-                         self.second_subtree.min_list_subtrees(depth+1))
+        return np.append(np.append([self], self.first_subtree.min_list_subtrees(depth + 1)),
+                         self.second_subtree.min_list_subtrees(depth + 1))
 
     def set_subtree(self, subtree, first_subtree):
+        if isinstance(subtree.first_subtree, Tree_Chrom_Leaf) and isinstance(subtree.second_subtree, Tree_Chrom_Leaf):
+            if subtree.first_subtree.value != 0 and subtree.second_subtree.value != 0:
+                subtree = Tree_Chrom_Leaf(subtree.first_subtree.value + subtree.second_subtree.value)
         if first_subtree:
             self.first_subtree = subtree
         else:
             self.second_subtree = subtree
 
     def print_gp_polynomial(self):
-        return self.eval_polynomial("x")
+        return self.operator.print_operator(self.first_subtree.print_gp_polynomial(), self.second_subtree.print_gp_polynomial())
 
 
 class Tree_Chrom_Leaf:
@@ -202,15 +217,20 @@ class Tree_Chrom_Leaf:
         self.value = x
 
     def eval_polynomial(self, x):
-        if not(self.value == 0):
-            return self.value
-        return x
+        if self.value == 0:
+            return x
+        return np.tile(self.value, x.size)
 
     def max_depth(self, d):
         return d
 
     def max_list_subtrees(self):
-        return self
+        return []
 
     def min_list_subtrees(self, depth):
         return []
+
+    def print_gp_polynomial(self):
+        if self.value == 0:
+            return "x"
+        return str(self.value)

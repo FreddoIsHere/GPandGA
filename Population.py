@@ -84,7 +84,7 @@ class Tree_SimAnnealing_Population(Population):
             i_polynomial = copy.deepcopy(current_polynomial)
             terminals = i_polynomial.return_terminals()
             for _ in range(max_iterations):
-                terminals = np.array([t.go_to_neighbour(int((self.coeffs_bound-self.coeffs_bound[0])/4)) for t in terminals])
+                terminals = np.array([t.go_to_neighbour(int((self.coeffs_bound[1]-self.coeffs_bound[0])/4)) for t in terminals])
                 max_temp = max_temp * temp_change
                 i_cost = self.annealing_cost(i_polynomial)
                 current_cost = self.annealing_cost(current_polynomial)

@@ -16,7 +16,9 @@ class Chromosome(ABC):
     def __init__(self):
         super().__init__()
 
-    def primes_fitness(self, interval, fitness_functions):
+    def primes_fitness(self, interval, fitness_functions=None):
+        if fitness_functions is None:
+            fitness_functions = [0, 1, 2]
         actual_functions = [self.num_primes_fitness_in_interval,
                             self.num_consecutive_primes_fitness_in_interval,
                             self.num_consecutive_primes_fitness]
@@ -184,6 +186,9 @@ class Tree_Chrom(Chromosome):
         else:
             self.second_subtree = subtree
 
+    def return_terminals(self):
+        return np.append(self.first_subtree.return_terminals(), self.second_subtree.return_terminals())
+
     def collapse_subtree(self, subtree):
         if isinstance(subtree, Tree_Chrom):
             if isinstance(subtree.first_subtree, Tree_Terminal) and isinstance(subtree.second_subtree, Tree_Terminal):
@@ -203,6 +208,10 @@ class Tree_Terminal:
         else:
             self.value = x
 
+    def go_to_neighbour(self, radius):
+        self.value = self.value + np.random.randint(-radius, radius)
+        return self
+
     def eval_polynomial(self, x):
         return np.tile(self.value, x.size)
 
@@ -214,6 +223,9 @@ class Tree_Terminal:
 
     def top_down_list_subtrees(self, depth):
         return []
+
+    def return_terminals(self):
+        return [self]
 
     def print_gp_polynomial(self):
         return str(self.value)
@@ -231,6 +243,9 @@ class Tree_Non_Terminal:
         return self
 
     def top_down_list_subtrees(self, depth):
+        return []
+
+    def return_terminals(self):
         return []
 
     def print_gp_polynomial(self):

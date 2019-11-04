@@ -5,7 +5,7 @@ import time,sys
 def find_prime_polynomial(constructor, fitness_functions, num_populations=1, merge_point=0.5, population_size=500,
                           test_interval=(0, 100),
                           birth_rate=0.9, mutation=0.01,
-                          coeffs_bound=(-50, 50), constraint=3):
+                          coeffs_bound=(-50, 50), constraint=3, operator_functions=None):
     # print used parameters
     print("Chromosome: {0}, Amount of populations: {1}, Population-size: {2}, \n"
           "Test-interval: {3}, Birth-rate: {4}, Mutation-rate: {5}, Coeffs-bound: {6}, Constraint: {7}"
@@ -15,12 +15,12 @@ def find_prime_polynomial(constructor, fitness_functions, num_populations=1, mer
     populations = np.array(
         [constructor(fitness_functions, population_size=population_size, test_interval=test_interval,
                      birth_rate=birth_rate,
-                     mutation=mutation, coeffs_bound=coeffs_bound, constraint=constraint)])
+                     mutation=mutation, coeffs_bound=coeffs_bound, constraint=constraint, operator_functions=operator_functions)])
     for _ in range(1, num_populations):
         np.append(populations,
                   [constructor(fitness_functions, population_size=population_size, test_interval=test_interval,
                                birth_rate=birth_rate,
-                               mutation=mutation, coeffs_bound=coeffs_bound, constraint=constraint)])
+                               mutation=mutation, coeffs_bound=coeffs_bound, constraint=constraint, operator_functions=operator_functions)])
     # start evolution
     not_converged = True
     while not_converged:

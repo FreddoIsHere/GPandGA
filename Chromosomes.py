@@ -70,13 +70,13 @@ class Chromosome(ABC):
 
 class Poly_Chrom(Chromosome):
 
-    def __init__(self, values=None, order_upper_bound=3, coeffs_bound=(-50, 50)):
+    def __init__(self, values=None, order_upper_bound=2, coeffs_bound=(-50, 50)):
         super().__init__()
         self.coeffs_bound = coeffs_bound
-        self.order_upper_bound = order_upper_bound
+        self.order_upper_bound = order_upper_bound+2
         if values is None:
             self.value = np.array(
-                np.random.choice(range(coeffs_bound[0], coeffs_bound[1]), size=np.random.randint(1, order_upper_bound), replace=True))
+                np.random.choice(range(coeffs_bound[0], coeffs_bound[1]), size=np.random.randint(1, self.order_upper_bound), replace=True))
         else:
             self.value = values
 

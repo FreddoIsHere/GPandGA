@@ -29,8 +29,9 @@ def find_prime_polynomial(constructor, fitness_functions, num_populations=1, mer
             not_converged = not_converged or p.introduce_new_generation()
         i = populations.size
         if i > 1 and populations[0].polynomials.size < merge_point * population_size:
-            populations[0].merge_populations(populations[i-1])
-            populations = np.delete(populations, i-1)
+            for k in range(1, i):
+                populations[0].merge_populations(populations[k])
+                populations = np.delete(populations, k)
     # add last average fitness
     fitnesses = [p.primes_fitness(populations[0].test_interval, populations[0].fitness_functions) for p in
                  populations[0].polynomials]

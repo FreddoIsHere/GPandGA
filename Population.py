@@ -53,6 +53,6 @@ class Poly_Population(Population):
 
 class Tree_Population(Population):
 
-    def __init__(self, fitness_functions, population_size, test_interval, birth_rate, mutation, coeffs_bound, constraint):
+    def __init__(self, fitness_functions, population_size, test_interval, birth_rate, mutation, coeffs_bound, constraint, operator_functions=None):
         super().__init__(fitness_functions, population_size, test_interval, birth_rate, mutation)
-        self.polynomials = np.array([Tree_Chrom(coeffs_bound=coeffs_bound, depth_limit=constraint) for _ in range(population_size)])
+        self.polynomials = np.array([Tree_Chrom(coeffs_bound=coeffs_bound, depth_limit=constraint, operator_functions=operator_functions) for _ in range(population_size)])

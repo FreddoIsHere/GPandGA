@@ -2,17 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8cb18bfc-653a-42b9-a9de-00de44ce6eff" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/custom_tree_1.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/custom_tree_2.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/function_exp_2.1_tree.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/function_exp_2.2_tree.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/reproduction_ga.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tree_ga_2_comparison.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tree_ga_comparison.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tree_mutation_2_comparison.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tree_mutation_comparison.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tree_simAnn_average.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tree_simAnn_scatter.pdf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.ipynb_checkpoints/Experiments-checkpoint.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/.ipynb_checkpoints/Experiments-checkpoint.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Chromosomes.py" beforeDir="false" afterPath="$PROJECT_DIR$/Chromosomes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Experiments.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/Experiments.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Population.py" beforeDir="false" afterPath="$PROJECT_DIR$/Population.py" afterDir="false" />
     </list>

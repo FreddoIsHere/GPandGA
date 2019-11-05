@@ -154,7 +154,7 @@ class Tree_Chrom(Chromosome):
 
     def discrete_crossover(self, tree_chrom, mutation=0.01):
         bottom_up_subtrees = np.random.choice(
-            [Tree_Chrom(coeffs_bound=self.coeffs_bound, depth_limit=self.depth_limit), np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
+            [Tree_Chrom(coeffs_bound=self.coeffs_bound, depth_limit=int(self.depth_limit/2)), np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
             p=[mutation, 1 - mutation])
         np.random.choice(self.top_down_list_subtrees()).set_subtree(bottom_up_subtrees, np.random.choice([True, False]))
         return copy.deepcopy(self)

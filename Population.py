@@ -74,17 +74,27 @@ class Tree_SimAnnealing_Population(Population):
         self.coeffs_bound = coeffs_bound
         super().__init__(fitness_functions, population_size, test_interval, birth_rate, mutation, constraint)
         self.polynomials = np.array(
-            [self.simulated_annealing(Tree_Chrom(coeffs_bound=coeffs_bound, depth_limit=constraint, operator_functions=operator_functions)) for _
+            [Tree_Chrom(coeffs_bound=coeffs_bound, depth_limit=constraint, operator_functions=operator_functions) for _
              in range(population_size)])
 
-    def simulated_annealing(self, original_polynomial, max_iterations=900, max_temp=100000, temp_change=0.98):
+    # @override
+    def introduce_new_generation(self):
+        num_deaths = self.selection()
+        self.replenish(num_deaths)
+        size = self.polynomials.size
+        for i in np.random.choice(range(size), size=int(0.1 * size)):
+            self.polynomials[i] = self.simulated_annealing(self.polynomials[i])
+        return num_deaths != 0
+
+    def simulated_annealing(self, original_polynomial, max_iterations=700, max_temp=70000, temp_change=0.98):
         if isinstance(original_polynomial, Tree_Chrom):
             current_polynomial = copy.deepcopy(original_polynomial)
             best_polynomial = original_polynomial
             i_polynomial = copy.deepcopy(current_polynomial)
             terminals = i_polynomial.return_terminals()
             for _ in range(max_iterations):
-                terminals = np.array([t.go_to_neighbour(int((self.coeffs_bound[1]-self.coeffs_bound[0])/4)) for t in terminals])
+                terminals = np.array(
+                    [t.go_to_neighbour(int((self.coeffs_bound[1] - self.coeffs_bound[0]) / 2)) for t in terminals])
                 max_temp = max_temp * temp_change
                 i_cost = self.annealing_cost(i_polynomial)
                 current_cost = self.annealing_cost(current_polynomial)

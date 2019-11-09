@@ -14,6 +14,7 @@ class Population:
         self.mutation = mutation
         self.average_fitness_over_time = []
         self.fitness_over_time = []
+        self.average_fitness_over_time_replenish = []
         self.constraint = constraint
 
     def introduce_new_generation(self):
@@ -33,6 +34,7 @@ class Population:
 
     def replenish(self, num_deaths):
         fitnesses = [p.primes_fitness(self.test_interval, self.fitness_functions) for p in self.polynomials]
+        self.average_fitness_over_time_replenish.append(np.mean(fitnesses))
         scores = np.array(fitnesses) + 0.1 * self.polynomials.size
         probabilities = scores / np.sum(scores)
         breeders_1 = np.random.choice(self.polynomials, size=int(num_deaths * self.birth_rate), replace=True,
@@ -73,6 +75,7 @@ class Tree_SimAnnealing_Population(Population):
                  constraint, operator_functions=None):
         self.coeffs_bound = coeffs_bound
         super().__init__(fitness_functions, population_size, test_interval, birth_rate, mutation, constraint)
+        self.average_fitness_over_time_simAnn = []
         self.polynomials = np.array(
             [Tree_Chrom(coeffs_bound=coeffs_bound, depth_limit=constraint, operator_functions=operator_functions) for _
              in range(population_size)])
@@ -82,6 +85,7 @@ class Tree_SimAnnealing_Population(Population):
         num_deaths = self.selection()
         self.replenish(num_deaths)
         size = self.polynomials.size
+        self.average_fitness_over_time_simAnn.append(np.mean([p.primes_fitness(self.test_interval, self.fitness_functions) for p in self.polynomials]))
         for i in np.random.choice(range(size), size=int(0.1 * size)):
             self.polynomials[i] = self.simulated_annealing(self.polynomials[i])
         return num_deaths != 0

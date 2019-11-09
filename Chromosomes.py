@@ -140,21 +140,23 @@ class Tree_Chrom(Chromosome):
     def __init__(self, depth=0, depth_limit=2, coeffs_bound=(-50, 50), operator_functions=None):
         super().__init__()
         if operator_functions is None:
-            operator_functions = [add, multiply]
+            self.operator_functions = [add, multiply]
+        else:
+            self.operator_functions = operator_functions
         self.coeffs_bound = coeffs_bound
         self.depth_limit = depth_limit
         if depth == 2 * depth_limit - 1:
             self.first_subtree = np.random.choice([Tree_Terminal(coeffs_bound=coeffs_bound), Tree_Non_Terminal()], p=[0.5, 0.5])
-            self.operator = Operator(operator_functions)
+            self.operator = Operator(self.operator_functions)
             self.second_subtree = np.random.choice([Tree_Terminal(coeffs_bound=coeffs_bound), Tree_Non_Terminal()], p=[0.5, 0.5])
         else:
-            self.first_subtree = Tree_Chrom(operator_functions=operator_functions, depth=depth + 1, depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
-            self.operator = Operator(operator_functions)
-            self.second_subtree = Tree_Chrom(operator_functions=operator_functions, depth=depth + 1, depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
+            self.first_subtree = Tree_Chrom(operator_functions=self.operator_functions, depth=depth + 1, depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
+            self.operator = Operator(self.operator_functions)
+            self.second_subtree = Tree_Chrom(operator_functions=self.operator_functions, depth=depth + 1, depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
 
     def discrete_crossover(self, tree_chrom, mutation=0.01):
         bottom_up_subtrees = np.random.choice(
-            [Tree_Chrom(coeffs_bound=self.coeffs_bound, depth_limit=int(self.depth_limit/2)), np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
+            [Tree_Chrom(operator_functions=self.operator_functions, coeffs_bound=self.coeffs_bound, depth_limit=int(self.depth_limit)), np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
             p=[mutation, 1 - mutation])
         np.random.choice(self.top_down_list_subtrees()).set_subtree(bottom_up_subtrees, np.random.choice([True, False]))
         return copy.deepcopy(self)

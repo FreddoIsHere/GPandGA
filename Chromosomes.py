@@ -9,6 +9,11 @@ class Fitness(IntEnum):
     number_of_primes_in_interval = 0
     number_of_consecutive_primes_in_interval = 1
     number_of_consecutive_primes = 2
+    mse = 3
+
+
+time_series = np.array([4.3, 2, 5.1986, 5.2, 5.3, 5.42, 2, -3, 2.98, -3.2, -2, -2.4, 7.4, 1.4, 6, 2.7575, 3, 3.186, 3.286, 0,
+               0.234])
 
 
 class Chromosome(ABC):
@@ -21,12 +26,17 @@ class Chromosome(ABC):
             fitness_functions = [0, 1, 2]
         actual_functions = [self.num_primes_fitness_in_interval,
                             self.num_consecutive_primes_fitness_in_interval,
-                            self.num_consecutive_primes_fitness]
+                            self.num_consecutive_primes_fitness,
+                            self.mse]
         fitness = 0
         for i in fitness_functions:
             function = actual_functions[int(i)]
             fitness += function(interval)
         return fitness
+
+    def mse(self, interval):
+        diff = time_series - self.eval_polynomial(np.array(range(interval[0], interval[1])))
+        return 1/(np.dot(diff, diff.T) + 1)
 
     def num_primes_fitness_in_interval(self, interval):
         results = np.unique(self.eval_polynomial(np.array(range(interval[0], interval[1]))))
@@ -75,10 +85,11 @@ class Poly_Chrom(Chromosome):
     def __init__(self, values=None, order_upper_bound=2, coeffs_bound=(-50, 50)):
         super().__init__()
         self.coeffs_bound = coeffs_bound
-        self.order_upper_bound = order_upper_bound+2
+        self.order_upper_bound = order_upper_bound + 2
         if values is None:
             self.value = np.array(
-                np.random.choice(range(coeffs_bound[0], coeffs_bound[1]), size=np.random.randint(1, self.order_upper_bound), replace=True))
+                np.random.choice(range(coeffs_bound[0], coeffs_bound[1]),
+                                 size=np.random.randint(1, self.order_upper_bound), replace=True))
         else:
             self.value = values
 
@@ -94,7 +105,8 @@ class Poly_Chrom(Chromosome):
 
     def mutate(self, mutation, values):
         if np.random.choice([False, True], p=[1 - mutation, mutation]) and self.value.size > 0:
-            values[np.random.randint(0, values.size - 1)] = np.random.randint(self.coeffs_bound[0], self.coeffs_bound[1])
+            values[np.random.randint(0, values.size - 1)] = np.random.randint(self.coeffs_bound[0],
+                                                                              self.coeffs_bound[1])
             return np.trim_zeros(values, trim='b')
         else:
             return np.trim_zeros(values, trim='b')
@@ -146,17 +158,23 @@ class Tree_Chrom(Chromosome):
         self.coeffs_bound = coeffs_bound
         self.depth_limit = depth_limit
         if depth == 2 * depth_limit - 1:
-            self.first_subtree = np.random.choice([Tree_Terminal(coeffs_bound=coeffs_bound), Tree_Non_Terminal()], p=[0.5, 0.5])
+            self.first_subtree = np.random.choice([Tree_Terminal(coeffs_bound=coeffs_bound), Tree_Non_Terminal()],
+                                                  p=[0.5, 0.5])
             self.operator = Operator(self.operator_functions)
-            self.second_subtree = np.random.choice([Tree_Terminal(coeffs_bound=coeffs_bound), Tree_Non_Terminal()], p=[0.5, 0.5])
+            self.second_subtree = np.random.choice([Tree_Terminal(coeffs_bound=coeffs_bound), Tree_Non_Terminal()],
+                                                   p=[0.5, 0.5])
         else:
-            self.first_subtree = Tree_Chrom(operator_functions=self.operator_functions, depth=depth + 1, depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
+            self.first_subtree = Tree_Chrom(operator_functions=self.operator_functions, depth=depth + 1,
+                                            depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
             self.operator = Operator(self.operator_functions)
-            self.second_subtree = Tree_Chrom(operator_functions=self.operator_functions, depth=depth + 1, depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
+            self.second_subtree = Tree_Chrom(operator_functions=self.operator_functions, depth=depth + 1,
+                                             depth_limit=self.depth_limit, coeffs_bound=coeffs_bound)
 
     def discrete_crossover(self, tree_chrom, mutation=0.01):
         bottom_up_subtrees = np.random.choice(
-            [Tree_Chrom(operator_functions=self.operator_functions, coeffs_bound=self.coeffs_bound, depth_limit=int(self.depth_limit)), np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
+            [Tree_Chrom(operator_functions=self.operator_functions, coeffs_bound=self.coeffs_bound,
+                        depth_limit=self.depth_limit),
+             np.random.choice(copy.deepcopy(tree_chrom).bottom_up_list_subtrees())],
             p=[mutation, 1 - mutation])
         np.random.choice(self.top_down_list_subtrees()).set_subtree(bottom_up_subtrees, np.random.choice([True, False]))
         return copy.deepcopy(self)
@@ -194,7 +212,8 @@ class Tree_Chrom(Chromosome):
     def collapse_subtree(self, subtree):
         if isinstance(subtree, Tree_Chrom):
             if isinstance(subtree.first_subtree, Tree_Terminal) and isinstance(subtree.second_subtree, Tree_Terminal):
-                subtree = Tree_Terminal(subtree.operator.function(subtree.first_subtree.value, subtree.second_subtree.value))
+                subtree = Tree_Terminal(
+                    subtree.operator.function(subtree.first_subtree.value, subtree.second_subtree.value))
         return subtree
 
     def print_gp_polynomial(self):

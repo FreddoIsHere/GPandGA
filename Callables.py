@@ -7,6 +7,20 @@ def find_prime_polynomial(constructor, fitness_functions, num_populations=1, mer
                           test_interval=(0, 100),
                           birth_rate=0.9, mutation=0.01,
                           coeffs_bound=(-50, 50), constraint=3, operator_functions=None):
+    """
+    :param constructor:
+    :param fitness_functions:
+    :param num_populations:
+    :param merge_point:
+    :param population_size:
+    :param test_interval:
+    :param birth_rate:
+    :param mutation:
+    :param coeffs_bound:
+    :param constraint:
+    :param operator_functions:
+    :return:
+    """
     # print used parameters
     print("Chromosome: {0}, Amount of populations: {1}, Population-size: {2}, \n"
           "Test-interval: {3}, Birth-rate: {4}, Mutation-rate: {5}, Coeffs-bound: {6}, Constraint: {7}"
